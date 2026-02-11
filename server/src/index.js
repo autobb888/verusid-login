@@ -5,7 +5,8 @@ const bodyParser = require("body-parser");
 const { VerusIdInterface, primitives } = require('verusid-ts-client');
 const { randomBytes } = require('crypto');
 
-const { PRIVATE_KEY, SIGNING_IADDRESS, CHAIN, API, CHAIN_IADDRESS, SERVER_URL } = process.env;
+const { createHmac } = require('crypto');
+const { PRIVATE_KEY, SIGNING_IADDRESS, CHAIN, API, CHAIN_IADDRESS, SERVER_URL, LOGIN_CALLBACK_SECRET } = process.env;
 const VerusId = new VerusIdInterface(CHAIN, API);
 
 const I_ADDRESS_VERSION = 102;
@@ -129,14 +130,24 @@ app.post('/verusidlogin', async (req, res) => {
     // Forward to platform API to create session (use internal URL, not public)
     const PLATFORM_INTERNAL_URL = process.env.PLATFORM_INTERNAL_URL || 'http://localhost:3000';
     try {
+      const callbackBody = {
+        challengeId,
+        signingId,
+        verified: true,
+      };
+
+      // Sign the callback with HMAC shared secret (P1-VAP-001)
+      if (LOGIN_CALLBACK_SECRET) {
+        callbackBody.callbackSignature = createHmac('sha256', LOGIN_CALLBACK_SECRET)
+          .update(`${challengeId}:${signingId}`)
+          .digest('hex');
+        console.log("Callback signed with HMAC");
+      }
+
       const platformRes = await fetch(`${PLATFORM_INTERNAL_URL}/auth/qr/callback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          challengeId,
-          signingId,
-          verified: true,
-        }),
+        body: JSON.stringify(callbackBody),
       });
       console.log("Platform callback status:", platformRes.status);
     } catch (e) {
