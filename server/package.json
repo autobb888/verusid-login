@@ -20,6 +20,7 @@
     "jsonwebtoken": "^9.0.2",
     "qrcode": "^1.5.4",
     "twilio": "^5.3.5",
+    "verus-typescript-primitives": "https://github.com/VerusCoin/verus-typescript-primitives.git",
     "verusid-ts-client": "https://github.com/VerusCoin/verusid-ts-client.git"
   },
   "resolutions": {

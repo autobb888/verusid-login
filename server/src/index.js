@@ -108,35 +108,8 @@ app.post('/verusidlogin', async (req, res) => {
     console.log("Received login callback, keys:", Object.keys(data || {}));
     console.log("Body preview:", JSON.stringify(data).substring(0, 500));
     
-    // Fix: Decision.context doesn't get wrapped in Context() by the library constructor.
-    // Patch the raw JSON before constructing the response.
-    if (data.decision && data.decision.context && !(data.decision.context instanceof primitives.Context)) {
-      data.decision.context = new primitives.Context(data.decision.context.kv || {});
-      console.log("Patched Decision.context to Context instance");
-    }
-    if (data.decision && data.decision.request && data.decision.request.challenge) {
-      const ch = data.decision.request.challenge;
-      if (ch.context && !(ch.context instanceof primitives.Context)) {
-        ch.context = new primitives.Context(ch.context.kv || {});
-        console.log("Patched Challenge.context to Context instance");
-      }
-    }
-    
     let loginResponse = new primitives.LoginConsentResponse(data);
     console.log("LoginConsentResponse created, signing_id:", loginResponse.signing_id);
-    
-    // Also patch after construction in case constructor didn't wrap it
-    if (loginResponse.decision && loginResponse.decision.context && typeof loginResponse.decision.context.byteLength !== 'function') {
-      loginResponse.decision.context = new primitives.Context(loginResponse.decision.context.kv || {});
-      console.log("Post-construction patch: Decision.context");
-    }
-    if (loginResponse.decision && loginResponse.decision.request && loginResponse.decision.request.challenge) {
-      const ch = loginResponse.decision.request.challenge;
-      if (ch.context && typeof ch.context.byteLength !== 'function') {
-        ch.context = new primitives.Context(ch.context.kv || {});
-        console.log("Post-construction patch: Challenge.context");
-      }
-    }
     
     let verified = false;
     try {
